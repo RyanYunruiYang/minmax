@@ -2,63 +2,64 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import math
 import numpy as np
+from numpy import linalg
 
-rps = np.array([[0,-1,1],[1,0,-1],[-1,1,0]])
-
+if(True):
+    curstate = [np.array([[0.8],[0.1],[0.1]]),
+            np.array([[0.3],[0.4],[0.3]]),
+            np.array([[0.6],[0.3],[0.1]])]
+    # rps = np.array([[0,-1,1],
+    #         [1,0,-1],
+    #         [-1,1,0]])
+    rps = np.array([[0,-1,1],
+            [1,0,-2],
+            [-1,2,0]])
+else:
+    rps = np.array([1]) #old version
+    curstate = [np.array([60.0]), np.array([0.0]), np.array([0.0])]
 
 iterations = 1000
 numagent = 3
 
-log = [[] for i in range(numagent)]
+energy = []
+# log = [[] for i in range(numagent)]
 
-curstate = [np.array([[0.4],[0.3],[0.3]]),
-			np.array([[0.3],[0.4],[0.3]]),
-			np.array([[0.3],[0.3],[0.4]])]
+eta = 0.4 #hyperparameter learning rate. Setting it to 0.5 w/
+#scissor-paper doubling makes it explode (kaboom!)
 
-eta = 0.01 #hyperparameter learning rate
+# print(np.transpose(curstate[0]))
+# print(np.matmul(rps,curstate[1]))
+# # print(curstate[0] * np.transpose(np.matmul(rps,curstate[1])))
+# print(np.transpose(curstate[0]) * np.matmul(rps,curstate[1]))
+# print(float(np.transpose(curstate[0]) * np.matmul(rps,curstate[1])))
+# print(float(np.matmul(np.transpose(curstate[0]), np.matmul(rps,curstate[1]))))
+
+print("end testing\n")
+
+totalavg = [curstate[i]/(iterations+1) for i in range(numagent)]
 for t in range(iterations):
-	for i in range(len(curstate)):
-		for j in range(i): #j<i
-			curstate[i] -= eta * np.matmul(rps,curstate[j])
-		for j in range(i+1,len(curstate)): #j>i
-			curstate[i] += eta * np.matmul(rps,curstate[j])
-		log[i].append(curstate[i])
+    for i in range(numagent):
+        for j in range(i): #j<i
+            curstate[i] -= eta * np.matmul(np.transpose(rps),curstate[j])
+        for j in range(i+1,len(curstate)): #j>i
+            curstate[i] += eta * np.matmul(rps,curstate[j])
+        # log[i].append(curstate[i].copy)
+        print(f"{i}: {curstate[i]}")
+        totalavg[i] += curstate[i]/(iterations+1)
+    p1=sum([(linalg.norm(curstate[i])**2)/eta for i in range(numagent)])
+    if(curstate[0].shape[0]>1):
+        p2=sum([sum([float(np.matmul(np.transpose(curstate[i]), np.matmul(rps,curstate[j]))) for i in range(j)]) for j in range(numagent)])
+    else:
+        p2=sum([sum([float(np.transpose(curstate[i]) * np.matmul(rps,curstate[j])) for i in range(j)]) for j in range(numagent)])
+    energy.append(p1+p2)
 
-
-fig = plt.figure()
-if (numagent==2):
-	ax = fig.add_subplot()
-if(numagent==3):
-	ax = fig.add_subplot(projection='3d')
 
 for t in range(iterations):
-	for i in range(numagent):
-		print(log[i][t])
-	print()
+    # print(f"iteration: {t}")
+    # for i in range(numagent):
+    #     print(log[i][t])
+    print(f"energy at {t}: {energy[t]}")
+print(f"min: {min(energy)}, max: {max(energy)}")
 
-if(numagent==2):
-	plt.scatter(x[0],x[1], s=50, c=(1,0,0))
-	plt.scatter([x[0][i+1] for i in range(iterations)],[x[1][i] for i in range(iterations)], s=50, c=(0,0,1))
-if(numagent==3):
-	ax.scatter(log[0])
-	ax.scatter(log[1])
-	ax.scatter(log[2])
-
-	#
-	# y = [[x[j][i] for i in range(iterations)] for j in range(3)]
-	# z = [[x[j][i+1] for i in range(points)] for j in range(3)]
-	# ax.scatter(y[0],y[1],y[2])
-	# ax.scatter(z[0], y[1],y[2])
-	# ax.scatter(z[0],z[1], y[2])
-
-# ax = fig.add_subplot(133, projection='3d')
-
-	# u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-	# r=60
-	# x = r* np.cos(u)*np.sin(v)
-	# y = r* np.sin(u)*np.sin(v)
-	# z = r* np.cos(v)
-	# ax.plot_wireframe(x, y, z, color="red")
-	# ax.set_title("Sphere")
-
-plt.show()
+for i in range(numagent):
+    print(totalavg[i])
